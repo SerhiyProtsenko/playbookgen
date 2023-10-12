@@ -6,24 +6,30 @@ from langchain.callbacks.manager import collect_runs
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import (ChatPromptTemplate, HumanMessagePromptTemplate,
                                SystemMessagePromptTemplate)
-from langsmith import Client
+#from langsmith import Client
 from mitreattack.stix20 import MitreAttackData
 
 # Add environment variables for LangSmith
-os.environ["LANGCHAIN_TRACING_V2"]="true"
-os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
-os.environ["LANGCHAIN_PROJECT"] = "AttackGen"
-os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
+#os.environ["LANGCHAIN_TRACING_V2"]="true"
+#os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
+#os.environ["LANGCHAIN_PROJECT"] = "AttackGen"
+#os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
 
 # Initialize the LangSmith client
-client = Client()
+#client = Client()
+
+logo = 'https://static.scalarr.io/edgelabs-site-static/images/edgelabs.ico'
+st.image(logo)
+
+st.title('AI Edgelabs Demo, PlaybookGen')
+
 
 # Check if 'openai_api_key' exists in the session state
 if "openai_api_key" not in st.session_state:
     st.error("""
-             OpenAI API key not found!
+             API key not found!
              
-             Please go to the `Welcome` page and enter your OpenAI API key to continue.
+             Please go to the `Welcome` page and enter your API key to continue.
              """)
     st.stop()
 else:
@@ -35,27 +41,26 @@ if "scenario_generated" not in st.session_state:
 industry = st.session_state["industry"]
 company_size = st.session_state["company_size"]
 
-st.set_page_config(
-    page_title="Generate Scenario",
-    page_icon="🎭",
-)
+#st.set_page_config(
+#    page_title="Generate Playbook"
+#)
 
 def generate_scenario(openai_api_key, messages):
     try:
-        with st.status('Generating scenario...', expanded=True):
+        with st.status('Generating Playbook...', expanded=True):
             st.write("Initialising AI model.")
             llm = ChatOpenAI(openai_api_key=openai_api_key, streaming=False)
-            st.write("Model initialised. Generating scenario, please wait.")
+            st.write("Model initialised. Generating Playbook, please wait.")
 
             with collect_runs() as cb:
                 response = llm.generate(messages=[messages])
                 run_id1 = cb.traced_runs[0].id # Get run_id from the callback
 
-            st.write("Scenario generated successfully.")
+            st.write("Playbook generated successfully.")
             st.session_state['run_id'] = run_id1 # Store the run ID in the session state
         return response
     except Exception as e:
-        st.error("An error occurred while generating the scenario: " + str(e))
+        st.error("An error occurred while generating the Playbook: " + str(e))
         return None
 
 # Load and cache the MITRE ATT&CK data
@@ -75,7 +80,7 @@ def load_groups():
 groups = load_groups()
 
 
-st.markdown("# <span style='color: #1DB954;'>Generate Threat Group Scenario🛡️</span>", unsafe_allow_html=True)
+st.markdown("Generate Threat Group Playbook", unsafe_allow_html=True)
 
 st.markdown("""
             ### Select a Threat Actor Group
@@ -192,7 +197,7 @@ try:
         kill_chain_string = "\n".join(kill_chain)
 
         # Create System Message Template
-        system_template = "You are a cybersecurity expert. Your task is to produce a comprehensive incident response testing scenario based on the information provided."
+        system_template = "You are a cybersecurity expert. Your task is to produce a comprehensive playbook include the incident response on the information provided."
         system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
 
         # Create Human Message Template
@@ -205,7 +210,7 @@ Threat actor group '{selected_group_alias}' is planning to target the company us
 {kill_chain_string}
 
 **Your task:**
-Create an incident response testing scenario based on the information provided. The goal of the scenario is to test the company's incident response capabilities against the identified threat actor group. 
+Create an playbook include the incident response based on the information provided. The goal of the playbook is to provide the details incident response capabilities against the identified threat actor group. 
 
 Your response should be well structured and formatted using Markdown. Write in British English.
 """)
@@ -225,15 +230,15 @@ except Exception as e:
     st.error("An error occurred: " + str(e))
 st.markdown("")
 st.markdown("""
-            ### Generate a Scenario
+            ### Generate a Playbook
 
-            Click the button below to generate a scenario based on the selected threat actor group. A selection of the group's known techniques will be chosen at random and used to generate the scenario.
+            Click the button below to generate a Playbook based on the selected threat actor group. A selection of the group's known techniques will be chosen at random and used to generate the scenario.
 
-            It normally takes between 30-50 seconds to generate a scenario. ⏱️
+            It normally takes between 30-50 seconds to generate a Playbook. ⏱️
             """)
 
 try:
-    if st.button('Generate Scenario'):
+    if st.button('Generate Playbook'):
         if not openai_api_key:
             st.info("Please add your OpenAI API key to continue.")
         elif not industry:
@@ -250,90 +255,17 @@ try:
                 scenario_text = response.generations[0][0].text
                 st.session_state['scenario_text'] = scenario_text  # Store the generated scenario in the session state
                 st.markdown(scenario_text)
-                st.download_button(label="Download Scenario", data=st.session_state['scenario_text'], file_name="threat_group_scenario.md", mime="text/markdown")
+                st.download_button(label="Download Playbook", data=st.session_state['scenario_text'], file_name="threat_group_scenario.md", mime="text/markdown")
 
     else:
             # If a scenario has been generated previously, display it
             if 'scenario_text' in st.session_state and st.session_state['scenario_generated']:
                 st.markdown("---")
                 st.markdown(st.session_state['scenario_text'])
-                st.download_button(label="Download Scenario", data=st.session_state['scenario_text'], file_name="threat_group_scenario.md", mime="text/markdown")
+                st.download_button(label="Download Playbook", data=st.session_state['scenario_text'], file_name="threat_group_scenario.md", mime="text/markdown")
 
-    # Create a placeholder for the feedback message
-    feedback_placeholder = st.empty()
-
-    # Show the thumbs_up and thumbs_down buttons only when a scenario has been generated
-    st.markdown("---")
-    if st.session_state.get('scenario_generated', True):
-        st.markdown("Rate the scenario to help improve this tool.")
-        col1, col2, col3 = st.columns([0.5,0.5,5])
-        with col1:
-            thumbs_up = st.button("👍")
-            if thumbs_up:
-                try:
-                    run_id = st.session_state.get('run_id')
-                    if run_id:
-                        feedback_type_str = "positive"
-                        score = 1  # or 0
-                        comment = ""
-
-                        # Record the feedback
-                        feedback_record = client.create_feedback(
-                            run_id,
-                            feedback_type_str,
-                            score=score,
-                            comment=comment,
-                        )
-                        st.session_state.feedback = {
-                            "feedback_id": str(feedback_record.id),
-                            "score": score,
-                        }
-                        # Update the feedback message in the placeholder
-                        feedback_placeholder.success("Feedback submitted. Thank you.")
-                    else:
-                        # Update the feedback message in the placeholder
-                        feedback_placeholder.warning("No run ID found. Please generate a scenario first.")
-                except Exception as e:
-                    # Update the feedback message in the placeholder
-                    feedback_placeholder.error(f"An error occurred while creating feedback: {str(e)}")
-
-        with col2:
-            thumbs_down = st.button("👎")
-            if thumbs_down:
-                try:
-                    run_id = st.session_state.get('run_id')
-                    if run_id:
-                        feedback_type_str = "negative"
-                        score = 0  # or 0
-                        comment = ""
-
-                        # Record the feedback
-                        feedback_record = client.create_feedback(
-                            run_id,
-                            feedback_type_str,
-                            score=score,
-                            comment=comment,
-                        )
-                        st.session_state.feedback = {
-                            "feedback_id": str(feedback_record.id),
-                            "score": score,
-                        }
-                        # Update the feedback message in the placeholder
-                        feedback_placeholder.success("Feedback submitted. Thank you.")
-                    else:
-                        # Update the feedback message in the placeholder
-                        feedback_placeholder.warning("No run ID found. Please generate a scenario first.")
-                except Exception as e:
-                    # Update the feedback message in the placeholder
-                    feedback_placeholder.error(f"An error occurred while creating feedback: {str(e)}")
+    
 
 except Exception as e:
     st.error("An error occurred: " + str(e))
 
-# Add a back button
-link_to_homepage = "/"
-
-st.markdown(
-    f'<a href="{link_to_homepage}" style="display: inline-block; padding: 5px 20px; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 4px;">⬅️ Back</a>',
-    unsafe_allow_html=True
-)
